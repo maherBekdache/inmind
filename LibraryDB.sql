@@ -1,13 +1,7 @@
---ill finish this by saturday thank u
-
-CREATE TABLE Books (
-    bookID INT PRIMARY KEY,
-    title VARCHAR(100),
-    authorID INT,
-    isbn BIGINT,
-    publishedYear INT,
-    FOREIGN KEY (authorID) REFERENCES Authors(authorID)
-);
+CREATE DATABASE LibraryDB;
+GO
+USE LibraryDB;
+GO
 
 
 CREATE TABLE Authors (
@@ -17,6 +11,15 @@ CREATE TABLE Authors (
     country VARCHAR(50)
 );
 --can change to any length, but i doubt any names/countries exceed 50 letters
+
+CREATE TABLE Books (
+    bookID INT PRIMARY KEY,
+    title VARCHAR(100),
+    authorID INT,
+    isbn BIGINT,
+    publishedYear INT,
+    FOREIGN KEY (authorID) REFERENCES Authors(authorID)
+);
 
 CREATE TABLE Borrowers (
     borrowerID INT PRIMARY KEY,
@@ -36,6 +39,7 @@ CREATE TABLE Loans (
     FOREIGN KEY (bookID) REFERENCES Books(bookID),
     FOREIGN KEY (borrowerID) REFERENCES Borrowers(borrowerID)
 );
+--returned date is the deadline to return it
 
 
 INSERT INTO Authors (authorID, name, birthDate, country) VALUES
@@ -68,18 +72,39 @@ INSERT INTO Loans (loanID, bookID, borrowerID, loanDate, returnDate, returned) V
 
 --in the system, returnDate is the deadline to return the book, which is 30 days after loanDate.
 
-SELECT * FROM Books WHERE publishedYear = 1949;
+SELECT title AS booksFrom1949 FROM Books WHERE publishedYear = 1949;
+--save result alias as booksFrom1949, the year we looked for
+
 
 --assume the date today is July 20, to check overdues
-SELECT * 
-FROM Loans
-WHERE returnDate < '2025-07-20' AND returned = FALSE;
+SELECT B.title AS overdues FROM Loans L JOIN Books B ON L.bookID=B.bookID WHERE returnDate < '2025-07-20' AND returned = FALSE;
+--join loans with books on matching ID, check overdue loans, and retrieve their titles
+--save result alias as overdues
 
-SELECT B.title, A.name AS author
-FROM Loans L
-JOIN Books B ON L.bookID = B.bookID
-JOIN Authors A ON B.authorID = A.authorID
-WHERE L.borrowerID = 1;
 
-SELECT COUNT(*) AS totalBooks FROM Books;
+SELECT B.title, A.name AS borrows FROM Loans L JOIN Books B ON L.bookID=B.bookID JOIN Authors A ON A.authorID=B.authorID WHERE L.borrowerID=1;
+--from all the loans, join loans with borrowers table to get all the borrows
+--of ID 1 here, then get the book title, and join with the authors table based on
+--matching authorID and get the author name. the second join was optional.
+--save title and author name as borrows, alias.
 
+SELECT COUNT(*) AS booksCount FROM Books;
+--save result as booksCount
+GO
+CREATE VIEW PopularBooks AS
+SELECT B.title, COUNT(L.loanID) AS loanCount FROM Books B JOIN Loans L 
+ON B.bookID=L.bookID GROUP BY B.title,B.bookID ORDER BY loanCount;
+GO
+--returns a table of book titles and loan counts of each book in decreasing order
+
+CREATE PROCEDURE borrowBook @bookID INT, @borrowerID INT, @loanDate DATE AS
+BEGIN
+    INSERT INTO Loans(bookID, borrowerID, loanDate, returnDate, returned)
+    VALUES (@bookID, @borrowerID, @loanDate, DATEADD(MONTH, 1, @loanDate), 0);
+END;
+--adds one month to loan date, which is standard duration of loan
+
+GO
+CREATE PROCEDURE returnBook @loanID INT
+AS UPDATE Loans SET returned=1 WHERE loanID=@loanID;
+GO
