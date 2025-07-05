@@ -1,8 +1,4 @@
 CREATE DATABASE LibraryDB;
-GO
-USE LibraryDB;
-GO
-
 
 CREATE TABLE Authors (
     authorID INT PRIMARY KEY,
@@ -35,7 +31,7 @@ CREATE TABLE Loans (
     borrowerID INT,
     loanDate DATE,
     returnDate DATE,
-    returned BOOLEAN,
+    returned BIT,
     FOREIGN KEY (bookID) REFERENCES Books(bookID),
     FOREIGN KEY (borrowerID) REFERENCES Borrowers(borrowerID)
 );
@@ -64,11 +60,11 @@ INSERT INTO Books (bookID, title, authorID, isbn, publishedYear) VALUES
 (5, 'Animal Farm', 5, 9780451524935, 1945);
 
 INSERT INTO Loans (loanID, bookID, borrowerID, loanDate, returnDate, returned) VALUES
-(1, 1, 1, '2025-06-01', '2025-07-01', TRUE),
-(2, 2, 2, '2025-06-10', '2025-07-10', FALSE),
-(3, 3, 1, '2025-06-05', '2025-07-05', TRUE),
-(4, 4, 3, '2025-06-18', '2025-07-18', FALSE),
-(5, 5, 4, '2025-06-20', '2025-07-20', FALSE);
+(1, 1, 1, '2025-06-01', '2025-07-01', 1),
+(2, 2, 2, '2025-06-10', '2025-07-10', 0),
+(3, 3, 1, '2025-06-05', '2025-07-05', 1),
+(4, 4, 3, '2025-06-18', '2025-07-18', 0),
+(5, 5, 4, '2025-06-20', '2025-07-20', 0);
 
 --in the system, returnDate is the deadline to return the book, which is 30 days after loanDate.
 
@@ -77,7 +73,7 @@ SELECT title AS booksFrom1949 FROM Books WHERE publishedYear = 1949;
 
 
 --assume the date today is July 20, to check overdues
-SELECT B.title AS overdues FROM Loans L JOIN Books B ON L.bookID=B.bookID WHERE returnDate < '2025-07-20' AND returned = FALSE;
+SELECT B.title AS overdues FROM Loans L JOIN Books B ON L.bookID=B.bookID WHERE returnDate < '2025-07-20' AND returned = 0;
 --join loans with books on matching ID, check overdue loans, and retrieve their titles
 --save result alias as overdues
 
@@ -93,7 +89,7 @@ SELECT COUNT(*) AS booksCount FROM Books;
 GO
 CREATE VIEW PopularBooks AS
 SELECT B.title, COUNT(L.loanID) AS loanCount FROM Books B JOIN Loans L 
-ON B.bookID=L.bookID GROUP BY B.title,B.bookID ORDER BY loanCount;
+ON B.bookID=L.bookID GROUP BY B.title,B.bookID ORDER BY COUNT(L.loanID) DESC;
 GO
 --returns a table of book titles and loan counts of each book in decreasing order
 
